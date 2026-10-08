@@ -1,0 +1,908 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent platform</title>
+<style>
+  :root {
+    --bg:#fff; --panel:#fff; --soft:#f9fafb; --text:#111827; --muted:#6b7280; --line:#e5e7eb; --line-2:#d1d5db;
+    --accent:#6d3fe0; --accent-d:#5b30c7; --accent-bg:#f1ebff; --blue:#2f7de1; --violet:#8b5cf6;
+    --ok:#15803d; --bad:#b91c1c; --warn:#b45309; --banner:#eef4ff; --banner-line:#c7d7f8;
+    --shadow:0 1px 2px rgba(17,24,39,.04);
+    /* the old names still used in places */
+    --navy:#111827; --navy-2:#1f2937; --gold:var(--accent); --gold-d:var(--accent-d); --sand:var(--soft); --ivory:var(--bg); --card:var(--panel);
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; font:15px/1.55 Inter, "Segoe UI", system-ui, -apple-system, sans-serif; color:var(--text); background:var(--bg); }
+  .hidden { display:none !important; }
+  svg.ic { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; flex:none; }
+
+  /* ---- top bar ---- */
+  header { display:flex; justify-content:space-between; align-items:center; height:56px; padding:0 20px; background:#fff;
+           border-bottom:1px solid var(--line); position:sticky; top:0; z-index:10; }
+  .brand { display:flex; align-items:center; gap:10px; font-weight:600; font-size:16px; }
+  .brand small { display:inline; font-weight:400; font-size:14px; color:var(--muted); margin-left:2px; }
+  .brand small::before { content:"/"; margin:0 10px 0 2px; color:var(--line-2); }
+  .mark { width:22px; height:22px; border-radius:7px; background:linear-gradient(135deg, var(--accent), var(--blue)); display:grid; place-items:center; }
+  .mark::after { content:""; width:8px; height:8px; border-radius:50%; background:#fff; }
+  header .row { gap:10px; }
+  .pill { display:inline-block; padding:2px 10px; border-radius:999px; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+          background:var(--accent-bg); color:var(--accent); }
+  .provider-badge { display:inline-block; padding:3px 8px; border-radius:6px; font-size:10px; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
+                    background:#f0f9ff; color:#0369a1; border:1px solid #bae6fd; }
+
+  /* ---- layout: sidebar + content ---- */
+  .shell { display:grid; grid-template-columns:240px 1fr; min-height:calc(100vh - 56px); }
+  .side { border-right:1px solid var(--line); padding:20px 14px; position:sticky; top:56px; align-self:start; height:calc(100vh - 56px); background:#fff; }
+  .sidelabel { font-size:12px; letter-spacing:.08em; color:var(--muted); padding:0 10px 10px; font-weight:600; }
+  .side .tabs { display:flex; flex-direction:column; gap:2px; margin:0; border:0; }
+  main { padding:32px 40px 64px; max-width:1180px; width:100%; }
+  .pagehead { margin-bottom:20px; }
+  .pagehead h1 { font-size:26px; font-weight:700; margin:0 0 4px; letter-spacing:-.01em; }
+  .pagehead p { margin:0; color:var(--muted); }
+
+  /* ---- cards & headings ---- */
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:20px 22px; margin-bottom:18px; box-shadow:var(--shadow); }
+  h1,h2,h3 { margin:0 0 10px; font-weight:600; color:var(--text); }
+  h2 { font-size:18px; display:block; } h2::before { display:none; }
+  h3 { font-size:15px; margin-top:16px; }
+
+  /* ---- buttons, inputs ---- */
+  button { background:var(--accent); color:#fff; border:1px solid var(--accent); border-radius:8px; padding:8px 16px; cursor:pointer;
+           font:inherit; font-weight:600; font-size:14px; transition:background .15s, border-color .15s, color .15s; }
+  button:hover { background:var(--accent-d); border-color:var(--accent-d); }
+  button.ghost { background:#fff; color:var(--text); border:1px solid var(--line-2); }
+  button.ghost:hover { background:var(--soft); border-color:var(--muted); }
+  button.tab { background:transparent; color:var(--muted); border:0; border-bottom:2px solid transparent; border-radius:0; padding:8px 14px; font-weight:600; }
+  button.tab:hover { color:var(--text); background:transparent; }
+  button.tab.on { color:var(--accent); border-bottom-color:var(--accent); }
+  .side button.tab { display:flex; align-items:center; gap:10px; width:100%; text-align:left; border:0; border-radius:10px; padding:9px 10px;
+                     color:var(--text); font-weight:500; font-size:15px; }
+  .side button.tab:hover { background:var(--soft); }
+  .side button.tab.on { background:var(--accent-bg); color:var(--accent); font-weight:600; }
+  button.authtab { background:transparent; color:var(--muted); border:0; border-bottom:2px solid transparent; border-radius:0; padding:8px 18px; margin-bottom:-1px; font-weight:600; }
+  button.authtab:hover { color:var(--text); background:transparent; }
+  button.authtab.on { color:var(--accent); border-bottom-color:var(--accent); }
+  .tabs { display:flex; gap:4px; border-bottom:1px solid var(--line); }
+  input, select, textarea { font:inherit; padding:8px 12px; border:1px solid var(--line-2); border-radius:8px; background:#fff; color:var(--text); }
+  input:focus, select:focus, textarea:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(109,63,224,.15); }
+  textarea { width:100%; min-height:100px; resize:vertical; }
+  input[type=file] { background:var(--soft); border-style:dashed; }
+  .muted { color:var(--muted); font-size:13px; } .err { color:var(--bad); }
+  .row { display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+
+  /* ---- stat cards, tables, bars ---- */
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:14px; margin-bottom:18px; }
+  .kpi { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px 18px; box-shadow:var(--shadow); }
+  .kpi .muted { color:var(--muted); font-size:13px; }
+  .kpi b { display:block; font-size:28px; font-weight:700; margin-top:4px; letter-spacing:-.01em; }
+  table { border-collapse:collapse; width:100%; font-size:14px; }
+  th, td { text-align:left; padding:10px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--muted); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:.05em; background:var(--soft); }
+  tr:hover td { background:#fcfcfd; }
+  .grid2 { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:18px; }
+  .chartbox { position:relative; height:250px; }
+  .bar { height:8px; background:var(--line); border-radius:6px; overflow:hidden; margin:12px 0 6px; }
+  .bar > div { height:100%; background:var(--accent); width:0; transition:width .4s; }
+  .meter > div { transition:width .4s; } .meter.warn > div { background:linear-gradient(90deg,#f59e0b,#dc2626); }
+  .badge { display:inline-block; padding:2px 10px; border-radius:999px; font-size:12px; font-weight:600; background:#eef2ff; color:#3730a3; }
+  .badge.warn { background:#fef3c7; color:var(--warn); } .badge.ok { background:#dcfce7; color:var(--ok); } .badge.bad { background:#fee2e2; color:var(--bad); }
+  .role-chip { font-size:12px; font-weight:600; padding:2px 8px; border-radius:6px; background:#f3f4f6; color:#374151; text-transform:uppercase; letter-spacing:.05em; }
+
+  /* ---- info banner (welcome) and quick-link cards ---- */
+  .welcome { display:grid; grid-template-columns:1.3fr 1fr; gap:24px; align-items:center; background:var(--banner); border:1px solid var(--banner-line); box-shadow:none; }
+  .welcome h2 { font-size:18px; margin:0 0 4px; } .welcome p { margin:0; color:#374151; } .welcome .muted { color:#4b5563; }
+  .welcome .meter { background:#dbe6fb; height:8px; margin:8px 0 6px; }
+  .welcome .stats { display:flex; gap:26px; margin-top:12px; } .welcome .stats b { display:block; font-size:22px; font-weight:700; color:var(--text); }
+  .sectiontitle { display:flex; justify-content:space-between; align-items:baseline; margin:26px 0 12px; }
+  .sectiontitle h2 { margin:0; font-size:17px; }
+  .linkgrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:14px; margin-bottom:26px; }
+  .qcard { display:flex; align-items:center; gap:14px; width:100%; text-align:left; background:#fff; color:var(--text); border:1px solid var(--line);
+           border-radius:12px; padding:16px 18px; font-weight:400; }
+  .qcard:hover { background:var(--soft); border-color:var(--line-2); }
+  .qicon { width:40px; height:40px; border-radius:10px; background:#f3f4f6; display:grid; place-items:center; color:#374151; flex:none; }
+  .qcard b { display:block; font-size:15px; font-weight:600; } .qcard span.d { display:block; color:var(--muted); font-size:13px; line-height:1.4; margin-top:2px; }
+  .qcard .chev { margin-left:auto; color:var(--muted); }
+
+  /* ---- recommendations ---- */
+  .rec { border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:10px; padding:16px 18px; margin:14px 0; background:#fff; }
+  .rec ul { margin:6px 0 10px 18px; padding:0; }
+  .fb { border-left:3px solid var(--violet); background:var(--soft); border-radius:8px; padding:10px 14px; margin:10px 0 0; }
+  .fb .row { gap:10px; margin-bottom:4px; }
+  .rf { margin:10px 0 0; } .rf details { margin:6px 0; }
+  .fitbar { display:inline-block; width:90px; height:8px; background:var(--line); border-radius:6px; overflow:hidden; vertical-align:middle; margin:0 10px; }
+  .fitbar i { display:block; height:100%; background:var(--accent); }
+  .fitchip { display:inline-flex; align-items:center; padding:2px 12px; border-radius:999px; background:var(--accent-bg); color:var(--accent); font-size:13px; font-weight:600; }
+  .fitchip b { margin-right:4px; } .fitchip .fitbar { width:56px; margin:0 0 0 10px; background:#fff; }
+  .reqs { list-style:none; margin:8px 0 4px; padding:0; } .reqs li { padding:4px 0; }
+  .okc { color:var(--ok); font-weight:700; } .badc { color:var(--bad); font-weight:700; }
+  .cats label { display:inline-block; margin:2px 12px 2px 0; font-size:13px; }
+  details { border:1px solid var(--line); border-radius:10px; padding:10px 14px; background:var(--soft); }
+  details[open] { background:#fff; }
+  summary { cursor:pointer; color:var(--text); } summary::marker { color:var(--accent); }
+  .budget-edit { display:flex; gap:6px; align-items:center; flex-wrap:wrap; } .budget-edit input { width:120px; padding:5px 8px; }
+  .budget-edit button { padding:4px 10px; font-size:12px; border-radius:6px; }
+
+  /* ---- roles: same layout, different identity ---- */
+  body.role-admin { --accent:#1d4ed8; --accent-d:#1e40af; --accent-bg:#e8efff; --banner:#f3f4f6; --banner-line:#d1d5db; }
+  body.role-admin header { background:#111827; border-bottom-color:#111827; color:#fff; }
+  body.role-admin header .brand small { color:#9ca3af; } body.role-admin header .muted { color:#d1d5db; }
+  body.role-admin header .pill { background:#fbbf24; color:#111827; }
+  body.role-admin header button.ghost { background:transparent; color:#fff; border-color:#4b5563; } body.role-admin header button.ghost:hover { background:#1f2937; }
+  body.role-admin .side { background:#f9fafb; }
+  body.role-admin .rec { border-left-color:#111827; }
+  body.role-user header .pill { background:var(--accent-bg); color:var(--accent); }
+
+  /* ---- login ---- */
+  #login { min-height:100vh; display:grid; grid-template-columns:1.1fr 1fr; background:#fff; }
+  .hero { position:relative; padding:64px 56px; display:flex; flex-direction:column; justify-content:center; gap:18px; overflow:hidden;
+          background:linear-gradient(150deg, #f5f0ff 0%, #eaf2ff 100%); color:var(--text); }
+  .hero::before, .hero::after { content:""; position:absolute; border:1px solid rgba(109,63,224,.18); border-radius:50%; pointer-events:none; }
+  .hero::before { width:520px; height:520px; right:-180px; top:-160px; } .hero::after { width:340px; height:340px; right:-60px; bottom:-120px; }
+  .hero .brand { font-size:20px; }
+  .hero h1 { font-size:38px; line-height:1.15; max-width:480px; margin:0; letter-spacing:-.02em; } .hero h1 span { color:var(--accent); }
+  .hero p { color:#4b5563; max-width:440px; margin:0; font-size:16px; }
+  .hero ul { list-style:none; padding:0; margin:8px 0 0; color:#374151; display:grid; gap:8px; }
+  .hero li::before { content:""; display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--accent); margin-right:12px; }
+  .formside { display:grid; place-items:center; padding:40px 24px; }
+  .formcard { width:100%; max-width:390px; }
+  .formcard input { width:100%; margin-bottom:12px; } .formcard button { width:100%; padding:11px; }
+
+  @media (max-width: 960px) { .shell { grid-template-columns:1fr; } .side { position:static; height:auto; border-right:0; border-bottom:1px solid var(--line); padding:10px 12px; }
+    .sidelabel { display:none; } .side .tabs { flex-direction:row; overflow-x:auto; } .side button.tab { width:auto; white-space:nowrap; } main { padding:20px 16px 48px; } }
+  @media (max-width: 860px) { #login { grid-template-columns:1fr; } .hero { padding:36px 28px; } .hero h1 { font-size:30px; } }
+  @media (max-width: 760px) { .welcome { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+
+<div id="login">
+  <section class="hero">
+    <div class="brand"><span class="mark"></span>Agent platform</div>
+    <h1>Screen CVs with <span>clarity</span> and confidence.</h1>
+    <p>AI agents that classify candidates, surface reasons to hire and points to verify, and keep every decision and every token accounted for.</p>
+    <ul>
+      <li>Evidence-backed profile recommendations</li>
+      <li>Accept, modify or reject with a full audit trail</li>
+      <li>Usage, cost and time saved at a glance</li>
+    </ul>
+  </section>
+  <section class="formside">
+    <div class="formcard card">
+      <div class="tabs" style="margin-bottom:16px">
+        <button class="authtab on" id="modeLogin" type="button">Log in</button>
+        <button class="authtab" id="modeSignup" type="button">Create account</button>
+      </div>
+      <h2 id="authTitle">Welcome back</h2>
+      <p class="muted" id="authHint" style="margin-top:-4px">Sign in with your own account.</p>
+      <input id="u" placeholder="Username" autocomplete="username">
+      <input id="p" type="password" placeholder="Password" autocomplete="current-password">
+      <input id="p2" class="hidden" type="password" placeholder="Repeat password" autocomplete="new-password">
+      <button id="loginBtn">Log in</button>
+      <p id="loginErr" class="err"></p>
+    </div>
+  </section>
+</div>
+<div id="app" class="hidden">
+  <header>
+    <div class="brand"><span class="mark"></span><span>Agent platform</span><small id="space"></small></div>
+    <div class="row"><span id="providerBadge" class="provider-badge"></span><span id="rolePill" class="pill"></span><span id="who" class="muted"></span><button class="ghost" id="logout">Log out</button></div>
+  </header>
+  <div class="shell">
+    <aside class="side">
+      <div class="sidelabel">WORKSPACE</div>
+      <nav class="tabs">
+        <button class="tab on" data-tab="agents" id="tabAgents"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span class="lbl">Agents</span></button>
+        <button class="tab" data-tab="dashboard" id="tabDash"><svg class="ic" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span class="lbl">Dashboard</span></button>
+        <button class="tab hidden" data-tab="users" id="tabUsers"><svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 5.5a3 3 0 0 1 0 5.8M18 14.3c1.8.7 3 2.4 3 4.7"/></svg><span class="lbl">Users</span></button>
+        <button class="tab hidden" data-tab="account" id="tabAccount"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg><span class="lbl">Account</span></button>
+      </nav>
+    </aside>
+    <main>
+      <div class="pagehead"><h1 id="pageTitle"></h1><p id="pageSub"></p></div>
+
+    <section id="tab-users" class="hidden"><div id="usersView">Loading…</div></section>
+    <section id="tab-account" class="hidden"><div id="accountView">Loading…</div></section>
+
+    <section id="tab-agents">
+      <div id="welcome" class="card welcome"></div>
+      <div class="sectiontitle"><h2>Quick links</h2></div>
+      <div class="linkgrid" id="quick"></div>
+      <div class="card" id="cvCard">
+        <h2>CV classification</h2>
+        <div class="row">
+          <input id="cvFiles" type="file" multiple accept=".txt,.md,.pdf">
+          <button id="cvBtn">Classify CVs</button>
+        </div>
+        <div class="bar"><div id="cvBar"></div></div>
+        <div id="cvStatus" class="muted">Upload one or more CVs (.pdf, .txt or .md). Each CV is classified and quality-checked automatically.</div>
+      </div>
+      <div class="card" id="recsCard"><h2>Recommendations</h2><div id="recs" class="muted">Nothing yet.</div></div>
+
+      <div class="card" id="sentCard">
+        <h2>Feedback sentiment</h2>
+        <p class="muted" style="margin-top:-4px">Paste real feedback (one per line) or load a .txt or .csv file, check the lines, then analyse them. Up to 50 lines at a time.</p>
+        <textarea id="sText" placeholder="One piece of feedback per line"></textarea>
+        <div class="row" style="margin-top:8px">
+          <input id="sFile" type="file" accept=".txt,.csv" title="A .txt file with one feedback per line, or a .csv file with a feedback / text / comment / review column">
+          <button id="sBtn">Analyse feedback</button><span id="sMsg" class="muted"></span>
+        </div>
+        <h3>Analysed feedback</h3>
+        <div id="sHist" class="muted">Nothing analysed yet.</div>
+        <h3>AI sample feedback about CVs <span class="badge warn">synthetic</span></h3>
+        <p class="muted" style="margin-top:-4px">Written by the AI from each CV (button on a CV card) to demonstrate the agents. It is not real feedback, so it is kept apart and never counted in time saved.</p>
+        <div id="sOut"></div>
+      </div>
+    </section>
+
+    <section id="tab-dashboard" class="hidden">
+      <div class="row" id="srcTabs" style="margin-bottom:12px"></div>
+      <div id="dash">Loading…</div>
+      <div id="importCard" class="card hidden">
+        <h2>Import another agent's log</h2>
+        <p class="muted">Show another agent's usage log as its own tab. Each row needs a timestamp; the usual column names
+          (timestamp, prompt_tokens, completion_tokens, duration_ms, outcome, agent_name ...) are recognised automatically.</p>
+        <p style="margin:10px 0 4px"><b>1.</b> Name this log (this becomes the tab name)</p>
+        <input id="impSource" placeholder="for example: support-agent">
+        <p style="margin:10px 0 4px"><b>2.</b> Choose the log file, <b>or</b> paste its contents</p>
+        <input id="impFile" type="file" accept=".jsonl,.json,.csv">
+        <textarea id="impText" placeholder="…or paste the log here (JSON lines, a JSON array, or CSV)" style="min-height:90px;margin-top:8px"></textarea>
+        <div id="impMapBox" class="hidden" style="margin-top:8px">
+          <p class="muted" id="impMapHelp"></p>
+          <textarea id="impMap" style="min-height:60px">{}</textarea>
+        </div>
+        <div class="row" style="margin-top:8px"><button id="impBtn">Import</button><span id="impMsg" class="muted"></span></div>
+      </div>
+    </section>
+    </main>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const CATS = ["PSS","DCS","Front-End Developer","Back-End Developer","Web Automation","Mobile Automation","AI Engineer","Chatbot Application Tester","Other"];
+let token = null, me = null, charts = {}, currentSource = "platform";
+const userNames = {};  // id -> username, filled for admins only
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const num = n => Number(n || 0).toLocaleString();
+
+async function api(path, opts = {}) {
+  opts.headers = { ...(opts.headers || {}), Authorization: "Bearer " + token };
+  const r = await fetch(path, opts);
+  if (!r.ok) {
+    let m = r.statusText;
+    try {
+      const j = await r.json();
+      m = typeof j.detail === "string" ? j.detail
+        : Array.isArray(j.detail) ? j.detail.map(d => (d.msg || "").replace(/^Value error, /, "")).join("; ")
+        : JSON.stringify(j.detail);
+    } catch {}
+    throw new Error(m);
+  }
+  return r.json();
+}
+
+/* ---------- login ---------- */
+let signupMode = false;
+function setMode(signup) {
+  signupMode = signup;
+  $("modeLogin").classList.toggle("on", !signup); $("modeSignup").classList.toggle("on", signup);
+  $("u").autocomplete = signup ? "off" : "username";
+  $("p2").classList.toggle("hidden", !signup);
+  $("authTitle").textContent = signup ? "Create your account" : "Welcome back";
+  $("authHint").textContent = signup ? "Pick a username (3-32 letters, digits, . _ -) and a password of at least 8 characters. New accounts are standard users; admin access has to be approved by a current admin."
+                                     : "Sign in with your own account.";
+  $("loginBtn").textContent = signup ? "Create account" : "Log in";
+  $("p").autocomplete = signup ? "new-password" : "current-password";
+  $("loginErr").textContent = "";
+}
+$("modeLogin").onclick = () => setMode(false);
+$("modeSignup").onclick = () => setMode(true);
+
+async function doLogin() {
+  let r;
+  if (signupMode) {
+    if ($("p").value !== $("p2").value) { $("loginErr").textContent = "The two passwords do not match."; return; }
+    r = await fetch("/auth/signup", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: $("u").value, password: $("p").value }) });
+    if (!r.ok) {
+      let m = "Could not create the account";
+      try { const j = await r.json(); m = typeof j.detail === "string" ? j.detail : (j.detail || []).map(d => (d.msg || "").replace(/^Value error, /, "")).join("; ") || m; } catch {}
+      $("loginErr").textContent = m; return;
+    }
+  } else {
+    r = await fetch("/auth/login", { method: "POST", body: new URLSearchParams({ username: $("u").value, password: $("p").value }) });
+    if (!r.ok) { $("loginErr").textContent = "Wrong username or password"; return; }
+  }
+  token = (await r.json()).access_token;
+  me = await api("/me");
+  $("login").classList.add("hidden"); $("app").classList.remove("hidden");
+  $("who").textContent = me.username;
+  const admin = me.role === "admin";
+  document.body.classList.add(admin ? "role-admin" : "role-user");
+  $("rolePill").textContent = admin ? "Admin" : "User";
+  $("space").textContent = admin ? "Control room" : "My workspace";
+  setLbl("tabAgents", admin ? "CV workspace" : "Workspace");
+  setLbl("tabDash", admin ? "Overview" : "My usage");
+
+  // Show which LLM provider is currently answering calls (poll every 3 seconds for real-time update)
+  function updateProviderBadge() {
+    api("/dev/config").then(cfg => {
+      const providers = cfg.llm_provider.split(',').map(p => p.trim());
+      const labels = {"openai": "OpenAI", "anthropic": "Anthropic", "openrouter": "OpenRouter"};
+      const chain = providers.map(p => labels[p] || p).join(" → ");
+      const current = cfg.current_provider ? labels[cfg.current_provider] || cfg.current_provider : "waiting…";
+      $("providerBadge").textContent = current;
+      $("providerBadge").title = `Configured chain: ${chain}\nCurrently answering via: ${current}`;
+    }).catch(() => {});
+  }
+  updateProviderBadge();
+  setInterval(updateProviderBadge, 3000);
+  renderQuick();
+  setPage("agents");
+  $("tabUsers").classList.toggle("hidden", !admin);
+  $("tabAccount").classList.toggle("hidden", admin);  // the admin-access request is for users only
+  $("importCard").classList.toggle("hidden", !admin);
+  if (admin) {
+    for (const u of await api("/admin/users")) userNames[u.id] = u.username;
+    api("/admin/admin-requests").then(rs => setBadge(rs.filter(r => r.status === "pending").length)).catch(() => {});
+    await loadRecs();
+    document.querySelector('button.tab[data-tab="dashboard"]').click();  // admins land on the platform overview
+  } else {
+    loadRecs();
+  }
+  loadSentHistory();
+}
+$("loginBtn").onclick = doLogin;
+$("p").onkeydown = $("p2").onkeydown = e => { if (e.key === "Enter") doLogin(); };
+$("logout").onclick = () => location.reload();
+
+function setLbl(id, text) { $(id).querySelector(".lbl").textContent = text; }
+const PAGES = {
+  user: { agents: ["Workspace", "Upload CVs, review the recommendations and analyse feedback."], dashboard: ["My usage", "Only your own activity is shown here."],
+          account: ["Account", "Your profile and access."] },
+  admin: { agents: ["CV workspace", "Every user's CVs and results."], dashboard: ["Overview", "Platform-wide usage, cost and agent health."],
+           users: ["Users", "Create accounts, set monthly budgets and review admin requests."] },
+};
+function setPage(tab) {
+  const [title, sub] = (PAGES[me.role === "admin" ? "admin" : "user"][tab] || ["", ""]);
+  $("pageTitle").textContent = title; $("pageSub").textContent = sub;
+}
+const IC = (d) => `<svg class="ic" viewBox="0 0 24 24">${d}</svg>`;
+const CHEV = IC('<path d="M9 6l6 6-6 6"/>');
+function renderQuick() {
+  const admin = me.role === "admin";
+  const cards = admin ? [
+    ["scroll:cvCard", IC('<path d="M12 16V4m0 0l-4 4m4-4l4 4M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>'), "Upload CVs", "Classify CVs and get an HR review for each."],
+    ["tab:dashboard", IC('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'), "Overview", "Tokens, cost, runs, errors and time saved."],
+    ["tab:users", IC('<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 5.5a3 3 0 0 1 0 5.8M18 14.3c1.8.7 3 2.4 3 4.7"/>'), "Users", "Create accounts, set budgets, approve admin requests."],
+    ["scroll:sentCard", IC('<path d="M21 12a8 8 0 0 1-11.5 7.2L4 20l1-4.6A8 8 0 1 1 21 12z"/>'), "Feedback sentiment", "Analyse real feedback; AI sample feedback per CV."],
+  ] : [
+    ["scroll:cvCard", IC('<path d="M12 16V4m0 0l-4 4m4-4l4 4M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>'), "Upload CVs", "Classify CVs and get an HR review for each."],
+    ["scroll:recsCard", IC('<path d="M9 11l3 3 7-7M5 5h9M5 12h3M5 19h14"/>'), "Recommendations", "Review results and accept, modify or reject."],
+    ["scroll:sentCard", IC('<path d="M21 12a8 8 0 0 1-11.5 7.2L4 20l1-4.6A8 8 0 1 1 21 12z"/>'), "Feedback sentiment", "Analyse real feedback; AI sample feedback per CV."],
+    ["tab:dashboard", IC('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'), "My usage", "Your tokens, cost and time saved."],
+    ["tab:account", IC('<circle cx="12" cy="8" r="3.6"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/>'), "Account", "Your profile and admin access."],
+  ];
+  $("quick").innerHTML = cards.map(([go, icon, title, desc]) =>
+    `<button class="qcard" data-go="${go}"><span class="qicon">${icon}</span><span><b>${title}</b><span class="d">${desc}</span></span><span class="chev">${CHEV}</span></button>`).join("");
+}
+document.addEventListener("click", e => {
+  const c = e.target.closest(".qcard");
+  if (!c) return;
+  const [kind, target] = c.dataset.go.split(":");
+  if (kind === "tab") document.querySelector(`.side button.tab[data-tab="${target}"]`).click();
+  else $(target).scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+document.querySelectorAll(".side button.tab").forEach(b => b.onclick = () => {
+  setPage(b.dataset.tab);
+  document.querySelectorAll(".side button.tab").forEach(x => x.classList.toggle("on", x === b));
+  $("tab-agents").classList.toggle("hidden", b.dataset.tab !== "agents");
+  $("tab-dashboard").classList.toggle("hidden", b.dataset.tab !== "dashboard");
+  $("tab-users").classList.toggle("hidden", b.dataset.tab !== "users");
+  $("tab-account").classList.toggle("hidden", b.dataset.tab !== "account");
+  if (b.dataset.tab === "account") renderAccount();
+  if (b.dataset.tab === "dashboard") loadSources();
+  if (b.dataset.tab === "users") loadUsers();
+});
+
+/* ---------- CV batch ---------- */
+$("cvBtn").onclick = async () => {
+  const files = $("cvFiles").files;
+  if (!files.length) { $("cvStatus").textContent = "Choose at least one file."; return; }
+  const fd = new FormData();
+  for (const f of files) fd.append("files", f);
+  try {
+    $("cvStatus").textContent = "Uploading…"; $("cvBar").style.width = "0";
+    const { job_id } = await api("/cv/batch", { method: "POST", body: fd });
+    poll(job_id);
+  } catch (e) { $("cvStatus").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+};
+async function poll(id) {
+  try {
+    const j = await api("/cv/batch/" + id);
+    $("cvBar").style.width = j.percent + "%";
+    const errs = j.items.filter(i => i.status === "error");
+    $("cvStatus").innerHTML = `${j.done}/${j.total} processed (${j.status})` +
+      errs.map(i => `<div class="err">${esc(i.filename)}: ${esc(i.error)}</div>`).join("");
+    if (j.status === "running") setTimeout(() => poll(id), 1000); else loadRecs();
+  } catch (e) { $("cvStatus").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+}
+
+/* ---------- recommendations + decisions ---------- */
+let allRecs = [];
+async function loadRecs() {
+  const [recs, decs] = await Promise.all([api("/cv/recommendations"), api("/cv/decisions")]);
+  const latest = {};
+  decs.slice().reverse().forEach(d => latest[d.recommendation_id] = d);
+  allRecs = recs;
+  $("recs").innerHTML = recs.slice(0, 20).map(r => recCard(r, latest[r.id])).join("") || "Nothing yet.";
+  renderFeedbackList();
+  renderWelcome(recs, latest);
+}
+
+/* ---------- Feedback sentiment: REAL feedback that people paste or upload (agent: sentiment_agent) ---------- */
+function sentBadge(s) {
+  return s ? `<span class="badge ${s.sentiment === "positive" ? "ok" : s.sentiment === "negative" ? "bad" : s.sentiment === "mixed" ? "warn" : ""}">${esc(s.sentiment)}</span>` : '<span class="muted">n/a</span>';
+}
+function confCell(s) {
+  return `<span title="${esc(confDetail(s))}">${confText(s)}</span>${s && s.votes && s.confidence != null ? `<div class="muted">${s.votes[s.sentiment]} of ${s.votes_asked} runs</div>` : ""}`;
+}
+async function loadSentHistory() {
+  const rows = (await api("/sentiment/results?source=user")).slice(0, 50);
+  if (!rows.length) { $("sHist").innerHTML = '<div class="muted">Nothing analysed yet.</div>'; return; }
+  const admin = me.role === "admin";
+  const count = {};
+  rows.forEach(r => count[r.result.sentiment] = (count[r.result.sentiment] || 0) + 1);
+  $("sHist").innerHTML = `<div class="muted" style="margin-bottom:8px">Latest ${rows.length} · ${Object.entries(count).map(([k, n]) => `${n} ${esc(k)}`).join(" · ")}</div>` +
+    table(["Feedback", ...(admin ? ["Owner"] : []), "Sentiment", "Confidence (run agreement)", "Key phrases", "When"], rows.map(r => [
+      esc(r.text) + (r.result.injection_detected ? ' <span class="badge warn">instruction-like text ignored</span>' : ""),
+      ...(admin ? [esc(userNames[r.user_id] || "user #" + r.user_id)] : []),
+      sentBadge(r.result), confCell(r.result),
+      (r.result.key_phrases || []).map(p => `“${esc(p)}”`).join("<br>"),
+      esc(new Date(r.ts + "Z").toLocaleString()),
+    ]));
+}
+$("sFile").onchange = async () => {
+  const f = $("sFile").files[0];
+  if (!f) return;
+  $("sMsg").textContent = "Reading file…";
+  const fd = new FormData(); fd.append("file", f);
+  try {
+    const out = await api("/sentiment/parse", { method: "POST", body: fd });
+    $("sText").value = out.texts.join("\n");
+    $("sMsg").textContent = `Loaded ${out.texts.length} line${out.texts.length > 1 ? "s" : ""} from ${f.name}` +
+      (out.truncated ? ` (the file has ${out.total}; only the first ${out.max} were loaded)` : "") + ". Check them, then press Analyse.";
+  } catch (e) { $("sMsg").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+  $("sFile").value = "";
+};
+$("sBtn").onclick = async () => {
+  const texts = $("sText").value.split("\n").map(s => s.trim()).filter(Boolean);
+  if (!texts.length) { $("sMsg").textContent = "Enter at least one line, or load a file."; return; }
+  if (texts.length > 50) { $("sMsg").innerHTML = `<span class="err">${texts.length} lines: analyse at most 50 at a time.</span>`; return; }
+  $("sBtn").disabled = true; $("sMsg").textContent = `Analysing ${texts.length}…`;
+  try {
+    const { results } = await api("/sentiment/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ texts }) });
+    const failed = results.filter(r => !r.ok);
+    $("sMsg").innerHTML = `${results.length - failed.length} of ${results.length} analysed.` +
+      (failed.length ? ` <span class="err">Not analysed: ${failed.map(r => `“${esc(r.text.slice(0, 40))}” (${esc(r.error)})`).join("; ")}</span>` : "");
+    if (!failed.length) $("sText").value = "";
+    await loadSentHistory();
+  } catch (e) { $("sMsg").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+  finally { $("sBtn").disabled = false; }
+};
+
+/* ---------- AI sample feedback (synthetic): the AI feedback written for each CV ---------- */
+function renderFeedbackList() {
+  const rows = allRecs.filter(r => r.feedback).sort((a, b) => (b.feedback.ts || "").localeCompare(a.feedback.ts || ""));
+  if (!rows.length) { $("sOut").innerHTML = '<div class="muted">No AI sample feedback yet. Press “Generate AI feedback for this CV” on a CV above.</div>'; return; }
+  const count = {};
+  rows.forEach(r => { const k = r.feedback.sentiment ? r.feedback.sentiment.sentiment : "not analysed"; count[k] = (count[k] || 0) + 1; });
+  const admin = me.role === "admin";
+  const head = ["CV", ...(admin ? ["Owner"] : []), "Feedback", "Sentiment", "Confidence (run agreement)"];
+  $("sOut").innerHTML = `<div class="muted" style="margin-bottom:8px">${rows.length} feedback · ${Object.entries(count).map(([k, n]) => `${n} ${esc(k)}`).join(" · ")}</div>` +
+    table(head, rows.map(r => {
+      const s = r.feedback.sentiment;
+      const badge = s ? `<span class="badge ${s.sentiment === "positive" ? "ok" : s.sentiment === "negative" ? "bad" : s.sentiment === "mixed" ? "warn" : ""}">${esc(s.sentiment)}</span>` : '<span class="muted">n/a</span>';
+      return [esc(r.filename), ...(admin ? [esc(userNames[r.user_id] || "user #" + r.user_id)] : []),
+              `${esc(r.feedback.feedback)}<div class="muted">Based on: “${esc(r.feedback.evidence)}”</div>`, badge,
+              `<span title="${esc(confDetail(s))}">${confText(s)}</span>${s && s.votes && s.confidence != null ? `<div class="muted">${s.votes[s.sentiment]} of ${s.votes_asked} runs</div>` : ""}`];
+    }));
+}
+
+/* ---------- role-specific top strip ---------- */
+async function renderWelcome(recs, latest) {
+  const box = $("welcome");
+  if (me.role === "admin") {
+    const owners = new Set(recs.map(r => r.user_id)).size, decided = recs.filter(r => latest[r.id]).length;
+    box.innerHTML = `<div><h2>Control room</h2><p>You can see every user's CVs and results. Decisions can only be recorded by the user who owns the CV, and you can set each user's monthly token budget in the Users tab.</p></div>
+      <div class="stats"><div><b>${recs.length}</b><span class="muted">CVs shown</span></div><div><b>${owners}</b><span class="muted">users</span></div><div><b>${decided}</b><span class="muted">decided</span></div></div>`;
+    return;
+  }
+  let b = null;
+  try { b = await api("/me/budget"); } catch {}
+  const mine = recs.length, decided = recs.filter(r => latest[r.id]).length, pending = mine - decided;
+  const meter = !b ? "" : b.limit_tokens === 0
+    ? `<div class="muted">Token budget: unlimited · ${num(b.used_tokens)} used this month</div>`
+    : `<div class="muted">${num(b.used_tokens)} of ${num(b.limit_tokens)} tokens used this month · resets ${esc(b.resets_at.slice(0, 10))}</div>
+       <div class="bar meter ${b.percent_used >= 80 ? "warn" : ""}"><div style="width:${Math.min(100, b.percent_used)}%"></div></div>`;
+  box.innerHTML = `<div><h2>Hello, ${esc(me.username)}</h2><p>Upload CVs to get a category, reasons to hire, points to verify and interview questions. Your decisions are recorded for you only.</p>
+      <div class="stats"><div><b>${mine}</b><span class="muted">your CVs</span></div><div><b>${pending}</b><span class="muted">awaiting your decision</span></div><div><b>${decided}</b><span class="muted">decided</span></div></div></div>
+    <div><b>Your monthly budget</b>${meter}</div>`;
+}
+
+/* ---------- user: account tab (admin access request lives here, not on the front page) ---------- */
+async function renderAccount() {
+  const box = $("accountView");
+  let ar = null;
+  try { ar = (await api("/me/admin-request")).request; } catch {}
+  const status = ar && ar.status === "pending"
+    ? `<p>Your request is waiting for a current admin to decide.</p><div class="muted">Requested ${esc(ar.requested_at.slice(0, 16).replace("T", " "))}: “${esc(ar.reason)}”</div>`
+    : ar && ar.status === "approved"
+    ? `<p>Your request was approved${ar.decided_by ? " by " + esc(ar.decided_by) : ""}. Log out and sign in again to see the admin tools.</p>`
+    : `${ar ? `<p class="err">Your last request was denied${ar.decision_note ? ": " + esc(ar.decision_note) : ""}. You can send a new one.</p>` : ""}
+       <p class="muted">Admins can see every user's CVs and results and manage accounts. Admin access has to be approved by a current admin.</p>
+       <div class="row"><input id="arReason" placeholder="Why do you need admin access?" maxlength="500" style="flex:1;min-width:240px">
+         <button class="arSend">Request admin access</button></div><div id="arMsg" class="muted" style="margin-top:6px"></div>`;
+  box.innerHTML = `<div class="card"><h2>Your account</h2>
+      <p><b>${esc(me.username)}</b> <span class="role-chip">${esc(me.role)}</span></p>
+      <h3>Admin access</h3>${status}</div>`;
+}
+document.addEventListener("click", async e => {
+  if (!e.target.classList.contains("arSend")) return;
+  const msg = $("arMsg"), reason = $("arReason").value.trim();
+  if (reason.length < 10) { msg.innerHTML = '<span class="err">Please give a reason (at least 10 characters).</span>'; return; }
+  try {
+    await api("/me/admin-request", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reason }) });
+    renderAccount();
+  } catch (err) { msg.innerHTML = `<span class="err">${esc(err.message)}</span>`; }
+});
+
+/* ---------- admin: users, usage and budgets ---------- */
+async function loadUsers() {
+  const box = $("usersView");
+  try {
+    const [d, users, reqs] = await Promise.all([api("/dashboard/data"), api("/admin/users"), api("/admin/admin-requests")]);
+    const use = d.usage.by_user, bud = Object.fromEntries(d.budgets.map(b => [b.user, b]));
+    const pending = reqs.filter(r => r.status === "pending"), decided = reqs.filter(r => r.status !== "pending").slice(0, 8);
+    setBadge(pending.length);
+    box.innerHTML = `
+      <div class="card"><h2>Add a user</h2>
+        <div class="row">
+          <input id="nuName" placeholder="Username" autocomplete="off" maxlength="32">
+          <input id="nuPass" type="password" placeholder="Password (min 8)" autocomplete="new-password" maxlength="72">
+          <select id="nuRole"><option value="user">User</option><option value="admin">Admin (full access)</option></select>
+          <button class="mkuser">Create user</button><span id="nuMsg" class="muted"></span>
+        </div>
+        <p class="muted">Creating an admin gives full access to every user's data, so only do it for people you trust. Existing users can instead ask for admin access, and a current admin approves or denies the request below.</p>
+      </div>
+      <div class="card"><h2>Admin access requests ${pending.length ? `<span class="badge warn">${pending.length} pending</span>` : ""}</h2>
+        ${pending.length ? table(["User", "Reason", "Requested", "Decision"], pending.map(r => [`<b>${esc(r.username)}</b>`, esc(r.reason), esc(r.requested_at.slice(0, 16).replace("T", " ")),
+          `<div class="budget-edit" data-rid="${r.id}"><input class="dnote" placeholder="Note (optional)" style="width:170px">
+             <button class="rapprove">Approve</button><button class="ghost rdeny">Deny</button><span class="bmsg muted"></span></div>`]))
+          : '<div class="muted">No pending requests.</div>'}
+        ${decided.length ? `<h3>Recent decisions</h3>` + table(["User", "Result", "Decided by", "Note"], decided.map(r =>
+          [esc(r.username), `<span class="badge ${r.status === "approved" ? "ok" : "bad"}">${esc(r.status)}</span>`, esc(r.decided_by || "-"), esc(r.decision_note || "")])) : ""}
+      </div>
+      <div class="card"><h2>Users</h2>
+      <p class="muted">Usage this month and the monthly token budget (input + output). 0 means unlimited; "Default" returns the user to the platform default.</p>
+      ${table(["User", "Role", "LLM calls", "Tokens in / out", "Cost", "This month", "Monthly budget"], users.map(u => {
+        const x = use[u.username] || { calls: 0, input_tokens: 0, output_tokens: 0, cost_usd: 0 }, b = bud[u.username];
+        const pct = b && b.percent_used != null ? b.percent_used : null;
+        return [`<b>${esc(u.username)}</b>`, `<span class="role-chip">${esc(u.role)}</span>`, num(x.calls),
+          `${num(x.input_tokens)} / ${num(x.output_tokens)}`, "$" + x.cost_usd.toFixed(4),
+          b ? `${num(b.used_tokens)}${pct == null ? "" : ` <span class="muted">(${pct}%)</span><div class="bar meter ${pct >= 80 ? "warn" : ""}" style="margin:4px 0 0"><div style="width:${Math.min(100, pct)}%"></div></div>`}` : "-",
+          `<div class="budget-edit" data-id="${u.id}"><input type="number" min="0" value="${b ? b.limit_tokens : ""}" placeholder="tokens">
+             <button class="bsave">Save</button><button class="ghost bdef">Default</button><span class="bmsg muted"></span></div>`];
+      }))}</div>`;
+  } catch (e) { box.innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+}
+function setBadge(n) { setLbl("tabUsers", n ? `Users (${n} request${n > 1 ? "s" : ""})` : "Users"); }
+
+document.addEventListener("click", async e => {
+  if (!e.target.classList.contains("mkuser")) return;
+  const msg = $("nuMsg"), username = $("nuName").value.trim(), password = $("nuPass").value, role = $("nuRole").value;
+  if (!username || !password) { msg.innerHTML = '<span class="err">Enter a username and a password.</span>'; return; }
+  if (role === "admin" && !confirm(`Give ${username} full admin access?`)) return;
+  try {
+    const u = await api("/admin/users", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username, password, role }) });
+    userNames[u.id] = u.username;
+    await loadUsers();
+    $("nuMsg").textContent = `Created ${u.username} (${u.role}). Share the password with them privately.`;
+  } catch (err) { msg.innerHTML = `<span class="err">${esc(err.message)}</span>`; }
+});
+document.addEventListener("click", async e => {
+  const yes = e.target.classList.contains("rapprove"), no = e.target.classList.contains("rdeny");
+  if (!yes && !no) return;
+  const box = e.target.closest("[data-rid]"), msg = box.querySelector(".bmsg");
+  if (yes && !confirm("Approve this request? The user becomes an admin immediately.")) return;
+  try {
+    await api(`/admin/admin-requests/${box.dataset.rid}/${yes ? "approve" : "deny"}`, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ note: box.querySelector(".dnote").value.trim() || null }) });
+    loadUsers();
+  } catch (err) { msg.innerHTML = `<span class="err">${esc(err.message)}</span>`; }
+});
+document.addEventListener("click", async e => {
+  const save = e.target.classList.contains("bsave"), def = e.target.classList.contains("bdef");
+  if (!save && !def) return;
+  const box = e.target.closest(".budget-edit"), msg = box.querySelector(".bmsg"), raw = box.querySelector("input").value.trim();
+  if (save && raw === "") { msg.innerHTML = '<span class="err">Enter a number.</span>'; return; }
+  try {
+    await api(`/admin/users/${box.dataset.id}/budget`, { method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ monthly_token_budget: def ? null : parseInt(raw, 10) }) });
+    msg.textContent = "Saved"; setTimeout(loadUsers, 500);
+  } catch (err) { msg.innerHTML = `<span class="err">${esc(err.message)}</span>`; }
+});
+
+/* ---------- CV quality check: runs automatically with every classification (agent: cv_checker) ---------- */
+function evList(items, render) {
+  return items.length ? `<ul>${items.map(i => `<li>${render(i)}</li>`).join("")}</ul>` : '<div class="muted">None identified.</div>';
+}
+const quote = q => q ? `<div class="muted">“${esc(q)}”</div>` : '<div class="muted">(about something missing from the CV)</div>';
+function renderCheck(o) {
+  const ai = o.ai;
+  let aiHtml;
+  if (!ai) aiHtml = `<div class="err">AI review unavailable: ${esc(o.ai_error)}.</div>`;
+  else if (!ai.reasons_to_hire) aiHtml = '<div class="muted">This CV was reviewed with an older version that had no hiring insights. Upload it again to get them.</div>';
+  else aiHtml = `
+    ${o.injection_detected ? '<div class="err">⚠ This CV contains instruction-like text aimed at AI tools. It was ignored; verify the CV manually.</div>' : ""}
+    <p>${esc(ai.summary)} <span class="badge ${ai.evidence_strength === "strong" ? "ok" : ai.evidence_strength === "limited" ? "bad" : "warn"}">evidence in CV: ${esc(ai.evidence_strength)}${ai.evidence_strength_capped ? " (lowered because the CV has little length or measurable results)" : ""}</span></p>
+    ${ai.unverified_dropped ? `<div class="muted">${ai.unverified_dropped} point${ai.unverified_dropped > 1 ? "s were" : " was"} left out because the quote could not be found in the CV.</div>` : ""}
+    <h3 style="color:var(--ok)">Reasons to hire</h3>
+    ${evList(ai.reasons_to_hire, r => `<b>${esc(r.point)}</b>${quote(r.evidence)}`)}
+    <h3 style="color:var(--warn)">Points to consider (verify before deciding)</h3>
+    ${evList(ai.points_to_consider, p => `<b>${esc(p.point)}</b>${p.why_it_matters ? `<div class="muted">Why it matters: ${esc(p.why_it_matters)}</div>` : ""}${quote(p.evidence)}`)}
+    <h3 style="color:var(--bad)">Concerns (reasons for caution)</h3>
+    ${evList(ai.concerns, c => `<span class="badge ${c.severity === "high" ? "bad" : c.severity === "medium" ? "warn" : ""}">${esc(c.severity)}</span> <b>${esc(c.concern)}</b>${quote(c.evidence)}`)}
+    <h3>Suggested interview questions</h3>
+    ${ai.interview_questions.length ? `<ol>${ai.interview_questions.map(q => `<li>${esc(q)}</li>`).join("")}</ol>` : '<div class="muted">None.</div>'}
+    <h3>Skills</h3>
+    <div><b>Hard skills named:</b> ${ai.hard_skills.map(h => `<span class="badge">${esc(h)}</span>`).join(" ") || '<span class="muted">none</span>'}</div>
+    <div style="margin-top:6px"><b>Soft skills shown (with evidence):</b></div>
+    ${ai.soft_skills.length ? table(["Skill", "Evidence from the CV"], ai.soft_skills.map(s => [esc(s.skill), `“${esc(s.evidence)}”`])) : '<div class="muted">None clearly demonstrated.</div>'}`;
+  return `${aiHtml}
+    <div class="muted" style="margin-top:8px">${esc(o.note)}</div>`;
+}
+function qualityBlock(q) {
+  if (!q) return `<div class="muted" style="margin:8px 0">HR review: not available for this CV (classified before the review existed, or it failed).</div>`;
+  const ai = q.ai && q.ai.evidence_strength;
+  return `<details style="margin:8px 0"><summary><b>HR review</b> <span class="muted">· ${ai ? `evidence in CV: ${esc(ai)} · ` : ""}click for reasons to hire, points to consider, concerns and interview questions</span></summary>${renderCheck(q)}</details>`;
+}
+function recCard(r, d) {
+  const x = r.result, pc = x.primary_category;
+  const conf = (x.scores.find(s => s.category === pc) || {}).confidence;
+  const sec = x.secondary_categories.length ? x.secondary_categories.map(esc).join(", ") : "none";
+  const mine = r.user_id === me.id;
+  const orig = [pc, ...x.secondary_categories];
+  const form = mine ? `
+    <div class="decide" data-id="${r.id}">
+      <div class="row">
+        <select class="dsel"><option value="accept">Accept</option><option value="modify">Modify</option><option value="reject">Reject</option></select>
+        <input class="reason" placeholder="Reason (required for modify / reject)" style="flex:1;min-width:200px">
+        <button class="dbtn">Save decision</button> <span class="dmsg muted"></span>
+      </div>
+      <div class="modify hidden" style="margin-top:6px">
+        Primary: <select class="prim">${CATS.map(c => `<option ${c === pc ? "selected" : ""}>${esc(c)}</option>`).join("")}</select>
+        <div class="cats">Secondary: ${CATS.map(c => `<label><input type="checkbox" value="${esc(c)}" ${x.secondary_categories.includes(c) ? "checked" : ""}> ${esc(c)}</label>`).join("")}</div>
+      </div>
+    </div>` : `<span class="muted">Only ${esc(userNames[r.user_id] || "the owner")} can record a decision on this CV.</span>`;
+  const badge = d ? `<span class="badge ${d.decision === "accept" ? "ok" : d.decision === "reject" ? "bad" : "warn"}">${esc(d.decision)}</span>` : `<span class="badge">pending</span>`;
+  return `<div class="rec">
+    <div class="row"><b>${esc(r.filename)}</b> ${me.role === "admin" ? `<span class="role-chip">Owner: ${esc(userNames[r.user_id] || "user #" + r.user_id)}</span>` : ""} ${badge} <span id="fchip${r.id}">${fitChip(r.role_fit, pc)}</span> ${x.injection_detected ? '<span class="badge warn">injection attempt flagged</span>' : ""}</div>
+    <div>Primary: <b>${esc(pc)}</b> (${conf != null ? conf.toFixed(2) : "?"}) · Secondary: ${sec}</div>
+    <div class="muted">${esc(x.rationale)}</div>
+    <ul>${x.evidence.map(q => `<li class="muted">“${esc(q)}”</li>`).join("")}</ul>
+    ${qualityBlock(r.quality)}
+    ${d && d.reason ? `<div class="muted">Last decision reason: ${esc(d.reason)}</div>` : ""}
+    <div id="fb${r.id}">${feedbackBlock(r.feedback)}</div>
+    <div style="margin:10px 0"><button class="ghost gfb" data-rid="${r.id}">${r.feedback ? "Regenerate feedback" : "Generate AI feedback for this CV"}</button> <span class="gfm"></span></div>
+    <div id="rf${r.id}">${roleFitBlock(r.role_fit, pc)}</div>
+    <div class="row" style="margin:10px 0">${roleFitControls(pc)}<button class="ghost rfbtn" data-rid="${r.id}">Check role fit</button><span class="rfm"></span></div>
+    ${form}</div>`;
+}
+
+/* ---------- role fit: share of a role's checklist the CV can prove with a quote ---------- */
+const FIT_ROLES = CATS.filter(c => c !== "Other");
+// Score for the CV's own category, shown in the card header (computed automatically when the CV is classified).
+function fitChip(rf, primary) {
+  const x = rf && rf[primary];
+  if (!x) return "";
+  return `<span class="fitchip" title="Share of the ${esc(primary)} checklist this CV can prove with a quote (details below). Not a hiring verdict."><b>${x.score}%</b> ${esc(primary)} fit<span class="fitbar"><i style="width:${x.score}%"></i></span></span>`;
+}
+function roleFitControls(primary) {
+  const sel = FIT_ROLES.includes(primary) ? primary : "all";
+  return `<select class="rfsel">${FIT_ROLES.map(c => `<option value="${esc(c)}" ${c === sel ? "selected" : ""}>${esc(c)}</option>`).join("")}<option value="all" ${sel === "all" ? "selected" : ""}>Compare all ${FIT_ROLES.length} roles</option></select>`;
+}
+function roleFitBlock(rf, focus) {
+  if (!rf) return "";
+  const rows = Object.values(rf).sort((a, b) => b.score - a.score);
+  const req = q => `<li><span class="${q.met ? "okc" : "badc"}">${q.met ? "✓" : "✗"}</span> ${esc(q.text)} <span class="muted">(${q.weight === 2 ? "must-have" : "nice-to-have"})</span>` +
+    (q.met ? `<div class="muted">“${esc(q.evidence)}”</div>` : q.unverified ? '<div class="muted">The AI claimed this, but its quote could not be found in the CV, so it does not count.</div>'
+      : q.rejected ? '<div class="muted">A quote was found, but a second check decided it does not show this requirement, so it does not count.</div>' : "") + "</li>";
+  return `<div class="rf"><div><b>Role fit</b> <span class="muted">· share of the role's checklist the CV can prove with a quote, not a hiring verdict</span></div>` +
+    rows.map(x => `<details ${x.role === focus ? "open" : ""}><summary><b>${esc(x.role)}</b> · ${x.score}%<span class="fitbar"><i style="width:${x.score}%"></i></span>` +
+      `<span class="muted">must-haves ${x.must_met}/${x.must_total} · nice-to-haves ${x.nice_met}/${x.nice_total}</span></summary><ul class="reqs">${x.requirements.map(req).join("")}</ul>` +
+      (x.injection_detected ? '<div class="muted">Instruction-like text in the CV was ignored.</div>' : "") + "</details>").join("") + "</div>";
+}
+document.addEventListener("click", async e => {
+  const btn = e.target.closest(".rfbtn");
+  if (!btn) return;
+  const rid = btn.dataset.rid, sel = btn.parentElement.querySelector(".rfsel"), msg = btn.nextElementSibling, label = btn.textContent;
+  btn.disabled = true; msg.textContent = ""; btn.textContent = sel.value === "all" ? "Checking all roles…" : "Checking…";
+  try {
+    const out = await api(`/cv/recommendations/${rid}/role-fit`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ role: sel.value }) });
+    const rec = allRecs.find(r => r.id === +rid);
+    if (rec) { rec.role_fit = out.role_fit; $("fchip" + rid).innerHTML = fitChip(out.role_fit, rec.result.primary_category); }
+    $("rf" + rid).innerHTML = roleFitBlock(out.role_fit, sel.value === "all" ? null : sel.value);
+    const failed = Object.keys(out.errors || {});
+    if (failed.length) msg.innerHTML = `<span class="err">${failed.length} role${failed.length > 1 ? "s" : ""} could not be checked: ${esc(failed.join(", "))}</span>`;
+  } catch (err) { msg.innerHTML = `<span class="err">${esc(err.message)}</span>`; }
+  finally { btn.disabled = false; btn.textContent = label; }
+});
+// Confidence = share of repeated runs that agree on the label. Feedback saved before this existed has no votes: shown as "-".
+function confText(s) { return s && s.votes && s.confidence != null ? `${Math.round(s.confidence * 100)}%` : "-"; }
+function confDetail(s) {
+  if (!s || !s.votes) return "Created before confidence was measured. Regenerate the feedback to get one.";
+  if (s.confidence == null) return "Only one run, so no confidence was measured.";
+  return `${s.votes[s.sentiment]} of ${s.votes_asked} runs chose “${s.sentiment}”` + (Object.keys(s.votes).length > 1 ? ` (${Object.entries(s.votes).map(([k, n]) => `${k}: ${n}`).join(", ")})` : "");
+}
+function feedbackBlock(f) {
+  if (!f) return "";
+  const s = f.sentiment;
+  const badge = s
+    ? `<span class="badge ${s.sentiment === "positive" ? "ok" : s.sentiment === "negative" ? "bad" : s.sentiment === "mixed" ? "warn" : ""}" title="${esc(confDetail(s))}">${esc(s.sentiment)}${s.votes && s.confidence != null ? " · " + confText(s) + " agree" : ""}</span>`
+    : `<span class="muted">sentiment unavailable${f.sentiment_error ? ": " + esc(f.sentiment_error) : ""}</span>`;
+  return `<div class="fb"><div class="row"><b>AI feedback about this CV</b> ${badge}</div>
+    <div>${esc(f.feedback)}</div>
+    <div class="muted">Based on: “${esc(f.evidence)}” · written by AI (synthetic), not by a real reviewer</div></div>`;
+}
+document.addEventListener("change", e => {
+  if (e.target.classList.contains("dsel"))
+    e.target.closest(".decide").querySelector(".modify").classList.toggle("hidden", e.target.value !== "modify");
+});
+document.addEventListener("click", async e => {
+  if (!e.target.classList.contains("dbtn")) return;
+  const box = e.target.closest(".decide"), msg = box.querySelector(".dmsg");
+  const decision = box.querySelector(".dsel").value, reason = box.querySelector(".reason").value.trim();
+  const body = { decision, reason: reason || null };
+  if (decision !== "accept" && !reason) {
+    msg.innerHTML = `<span class="err">Please enter a reason for ${esc(decision)}.</span>`;
+    return;
+  }
+  if (decision === "modify") {
+    const prim = box.querySelector(".prim").value;
+    const sec = [...box.querySelectorAll(".cats input:checked")].map(i => i.value).filter(c => c !== prim);
+    body.final_categories = [prim, ...sec];
+  }
+  try {
+    await api(`/cv/recommendations/${box.dataset.id}/decision`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    loadRecs();
+  } catch (err) { msg.innerHTML = `<span class="err">${esc(err.message)}</span>`; }
+});
+
+/* ---------- AI feedback for one CV (agent: feedback_generator, then sentiment_agent) ---------- */
+document.addEventListener("click", async e => {
+  const btn = e.target.closest(".gfb");
+  if (!btn) return;
+  const rid = btn.dataset.rid, msg = btn.nextElementSibling, label = btn.textContent;
+  btn.disabled = true; btn.textContent = "Writing feedback…"; msg.textContent = "";
+  try {
+    const out = await api("/feedback/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recommendation_id: +rid }) });
+    $("fb" + rid).innerHTML = feedbackBlock(out.feedback);
+    btn.textContent = "Regenerate feedback";
+    const rec = allRecs.find(r => r.id === +rid);
+    if (rec) rec.feedback = out.feedback;
+    renderFeedbackList();
+  } catch (err) {
+    msg.innerHTML = `<span class="err">${esc(err.message)}</span>`;
+    btn.textContent = label;
+  } finally { btn.disabled = false; }
+});
+
+/* ---------- dashboard ---------- */
+function table(head, rows) {
+  return `<table><tr>${head.map(h => `<th>${h}</th>`).join("")}</tr>${rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join("")}</tr>`).join("")}</table>`;
+}
+function draw(id, type, labels, datasets, extra = {}) {
+  if (charts[id]) charts[id].destroy();
+  charts[id] = new Chart($(id), { type, data: { labels, datasets }, options: { responsive: true, maintainAspectRatio: false, ...extra } });
+}
+async function loadSources() {
+  const { sources } = await api("/dashboard/sources");
+  $("srcTabs").classList.toggle("hidden", me.role !== "admin");  // users only ever have the platform source
+  $("srcTabs").innerHTML = sources.map(s => `<button class="tab ${s === currentSource ? "on" : ""}" data-src="${esc(s)}">${s === "platform" ? "Platform" : "Imported: " + esc(s)}</button>`).join("");
+  document.querySelectorAll("#srcTabs button").forEach(b => b.onclick = () => { currentSource = b.dataset.src; loadSources(); });
+  if (!sources.includes(currentSource)) currentSource = "platform";
+  loadDash(currentSource);
+}
+async function loadDash(src) {
+  let d;
+  try { d = await api("/dashboard/data?source=" + encodeURIComponent(src)); }
+  catch (e) { $("dash").innerHTML = `<span class="err">${esc(e.message)}</span>`; return; }
+  const u = d.usage, t = u.totals, plat = d.source === "platform";
+  const kpi = (l, v) => `<div class="kpi"><span class="muted">${l}</span><b>${v}</b></div>`;
+  const admin = me.role === "admin";
+  $("dash").innerHTML = `
+    <p class="muted">${!plat ? "Imported log: " : ""}${admin ? "Scope: " + esc(d.scope) : ""}</p>
+    <div class="kpis">
+      ${kpi("LLM calls", num(t.calls))}${kpi("Input tokens", num(t.input_tokens))}
+      ${kpi("Output tokens", num(t.output_tokens))}${kpi("Estimated cost", "$" + t.cost_usd.toFixed(4))}
+      ${plat ? kpi("Time saved (est.)", d.time_saved.total_hours.toFixed(2) + " h") : ""}
+    </div>
+    ${plat && d.usage_not_reported ? `<p class="err">${d.usage_not_reported} successful call(s) returned no usage data and are counted as 0 tokens.</p>` : ""}
+    <div class="${admin ? "grid2" : ""}">
+      ${admin ? `<div class="card"><h3>Tokens by user</h3><div class="chartbox"><canvas id="cUser"></canvas></div></div>` : ""}
+      <div class="card"><h3>Tokens by agent</h3><div class="chartbox"><canvas id="cAgent"></canvas></div></div>
+    </div>
+    <div class="card"><h3>Agent runs (LLM calls)</h3>${table(["Agent", "Last 24 h", "Last 7 days", "Last 30 days"],
+      Object.entries(u.runs).map(([a, r]) => [esc(a), r["24h"], r["7d"], r["30d"]]))}</div>
+    <div class="card"><h3>Calls by model</h3>
+      <p class="muted">Which model answered. If one provider is down, calls move to the next one in the fallback order; the failed attempts show up here as errors.</p>
+      ${table(["Model", "Calls", "Errors", "Input", "Output", "Cost"],
+        Object.entries(u.by_model || {}).map(([m, v]) => [esc(m), v.calls, v.errors ? `<span class="err">${v.errors}</span>` : 0, num(v.input_tokens), num(v.output_tokens), "$" + v.cost_usd.toFixed(4)]))}</div>
+    <div class="card"><h3>Error rate and latency</h3>${table(["Agent", "Calls", "Errors", "Error rate", "Avg latency (ms)"],
+      Object.entries(u.agent_health).map(([a, h]) => [esc(a), h.calls, h.errors, (h.error_rate * 100).toFixed(1) + "%", h.avg_latency_ms]))}</div>
+    <div class="card"><h3>${admin ? "Usage by user and agent" : "Usage by agent"}</h3>${table(["Name", "Calls", "Input", "Output", "Cost"],
+      [...(admin ? Object.entries(u.by_user) : []).map(([k, v]) => ["user: " + esc(k), v.calls, num(v.input_tokens), num(v.output_tokens), "$" + v.cost_usd.toFixed(4)]),
+       ...Object.entries(u.by_agent).map(([k, v]) => ["agent: " + esc(k), v.calls, num(v.input_tokens), num(v.output_tokens), "$" + v.cost_usd.toFixed(4)])])}</div>
+    ${plat ? `
+    ${admin ? `<div class="card"><h3>Monthly token budgets</h3>${table(["User", "Used", "Limit", "Used %", "Resets (UTC)"],
+      d.budgets.map(b => [esc(b.user), num(b.used_tokens), b.limit_tokens ? num(b.limit_tokens) : "unlimited",
+        b.percent_used == null ? "-" : `<span class="${b.percent_used >= 100 ? "err" : ""}">${b.percent_used}%</span>`, esc(b.resets_at.slice(0, 10))]))}</div>` : ""}
+    <div class="card"><h3>${admin ? "CV recommendation acceptance, per category" : "How you handled your CV recommendations"}</h3>
+      <div class="chartbox"><canvas id="cAcc"></canvas></div>
+      ${table(["Category", "Recs", "Accepted", "Modified", "Rejected", "Pending", "Acceptance"],
+        Object.entries(d.cv_acceptance).map(([c, v]) => [esc(c), v.recommendations, v.accepted, v.modified, v.rejected, v.pending, v.acceptance_rate == null ? "n/a" : (v.acceptance_rate * 100).toFixed(0) + "%"]))}
+    </div>
+    <div class="card"><h3>Time saved (person-hours)</h3>
+      <p>CV: <b>${d.time_saved.cv_hours}</b> h · Sentiment: <b>${d.time_saved.sentiment_hours}</b> h (${d.time_saved.basis.sentiment_ok} real feedback analysed${d.time_saved.basis.ai_sample_feedback_not_counted ? `; ${d.time_saved.basis.ai_sample_feedback_not_counted} AI sample feedback not counted` : ""}) · Total: <b>${d.time_saved.total_hours}</b> h</p>
+      <p class="muted">${esc(d.time_saved.note)} Assumptions (minutes): ${esc(JSON.stringify(d.time_saved.assumptions_minutes))}.
+      Accepted results save the full gain, modified ones a fraction, rejected ones cost review time, pending ones count for nothing.</p>
+      <p class="muted">${Object.entries(d.definitions).map(([k, v]) => esc(k) + ": " + esc(v)).join(" · ")}</p>
+    </div>` : ""}`;
+
+  const users = Object.keys(u.by_user), agents = Object.keys(u.by_agent);
+  const stack = { scales: { x: { stacked: true }, y: { stacked: true } } };
+  if ($("cUser")) draw("cUser", "bar", users, [
+    { label: "Input", data: users.map(k => u.by_user[k].input_tokens), backgroundColor: "#2f7de1" },
+    { label: "Output", data: users.map(k => u.by_user[k].output_tokens), backgroundColor: "#8b5cf6" }], stack);
+  draw("cAgent", "bar", agents, [
+    { label: "Input", data: agents.map(k => u.by_agent[k].input_tokens), backgroundColor: "#2f7de1" },
+    { label: "Output", data: agents.map(k => u.by_agent[k].output_tokens), backgroundColor: "#8b5cf6" }], stack);
+  if (plat) {
+    const cats = Object.keys(d.cv_acceptance).filter(c => c !== "ALL");
+    draw("cAcc", "bar", cats, [{ label: "Acceptance rate (%)", backgroundColor: "#16a34a",
+      data: cats.map(c => d.cv_acceptance[c].acceptance_rate == null ? 0 : d.cv_acceptance[c].acceptance_rate * 100) }],
+      { scales: { y: { min: 0, max: 100 } } });
+  }
+}
+
+/* ---------- import ---------- */
+$("impBtn").onclick = async () => {
+  const f = $("impFile").files[0], src = $("impSource").value.trim(), pasted = $("impText").value.trim();
+  if (!src) { $("impMsg").textContent = "Give the log a name first."; return; }
+  if (!f && !pasted) { $("impMsg").textContent = "Choose a log file or paste the log text."; return; }
+  const fd = new FormData();
+  fd.append("source", src); fd.append("mapping", $("impMap").value.trim() || "{}");
+  if (f) fd.append("file", f); else fd.append("text", pasted);
+  $("impBtn").disabled = true;
+  try {
+    const r = await api("/dashboard/import", { method: "POST", body: fd });
+    $("impMsg").textContent = `Imported ${r.imported} rows (${r.skipped} skipped). It now appears as its own tab above.`;
+    currentSource = src; loadSources();
+  } catch (e) {
+    $("impMsg").innerHTML = `<span class="err">${esc(e.message)}</span>`;
+    if (/columns? found|timestamp/i.test(e.message)) {  // the log uses unusual column names: only now offer the mapping
+      $("impMapHelp").innerHTML = 'Tell us which of <i>your</i> columns is which, as JSON: our name on the left, your column name on the right. Only the ones that were not recognised, for example <code>{"ts": "when_called", "input_tokens": "tokens_in"}</code>. Then press Import again.';
+      $("impMapBox").classList.remove("hidden");
+    }
+  }
+  finally { $("impBtn").disabled = false; }
+};
+</script>
+</body>
+</html>

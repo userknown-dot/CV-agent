@@ -1,0 +1,12 @@
+# secrets: never commit real keys (the template .env.example is allowed)
+.env
+.env.*
+!.env.example
+
+# runtime data: databases, usage logs and backups contain CV text and usage history
+data/*
+!data/.gitkeep
+
+__pycache__/
+*.pyc
+.pytest_cache/
