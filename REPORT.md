@@ -192,7 +192,6 @@ dashboard shows only their own data.
 - Time saved comes from assumed minutes; the acceptance rate in the demo is scripted.
 - CV text is stored (personal data) for the HR review, feedback and role fit; add a retention or deletion policy before
   real use.
-- No login throttling; the demo accounts share one password. No `.dockerignore` yet, so a Docker build would copy
-  `.env` into the image.
+- No login throttling, and the demo accounts share one password.
 - SQLite suits a demo; use PostgreSQL for many concurrent users. Scanned PDFs (no text layer) and .docx are not supported.
 - The role-fit checklists were written by us from the category definitions; they are not an industry standard.

@@ -115,3 +115,29 @@ def test_import_explains_mistakes_instead_of_failing_with_a_parser_error():
     # source name rules still apply, and nothing was imported along the way
     assert client.post("/dashboard/import", data={"source": "platform", "text": log_lines}, headers=admin).status_code == 400
     assert "x" not in client.get("/dashboard/sources", headers=admin).json()["sources"]
+
+
+def test_import_warns_when_it_could_not_recognise_the_columns():
+    """A log with unusual names still imports, but must not report a silent success with empty values."""
+    odd = '{"records":[{"time":"2026-10-05T04:10:00Z","who":"erin","bot":"x","llm":"m","tokens":{"in":1200,"out":310},"ms":9,"result":"ok"}]}'
+    admin = auth("admin")
+    r = client.post("/dashboard/import", data={"source": "odd"}, headers=admin,
+                    files={"file": ("log.json", odd.encode(), "application/json")}).json()
+    assert r["imported"] == 1
+    assert r["warning"] and "input_tokens" in r["warning"] and "user" in r["warning"]
+    assert "tokens" in r["warning"] and "who" in r["warning"]  # it lists the columns it did find
+    d = client.get("/dashboard/data?source=odd", headers=admin).json()["usage"]
+    assert d["totals"]["input_tokens"] == 0  # the warning is telling the truth
+
+    mapping = '{"ts":"time","user":"who","agent":"bot","model":"llm","input_tokens":"tokens.in","output_tokens":"tokens.out","latency_ms":"ms","status":"result"}'
+    r2 = client.post("/dashboard/import", data={"source": "odd", "mapping": mapping}, headers=admin,
+                     files={"file": ("log.json", odd.encode(), "application/json")}).json()
+    assert r2["imported"] == 1 and r2["warning"] is None
+    d2 = client.get("/dashboard/data?source=odd", headers=admin).json()["usage"]
+    assert d2["totals"]["input_tokens"] == 1200 and list(d2["by_user"]) == ["erin"]
+
+
+def test_a_well_named_log_imports_with_no_warning():
+    good = '{"ts":"2026-10-03T10:00:00","user":"u","agent":"a","model":"m","input_tokens":5,"output_tokens":2,"latency_ms":9,"status":"success"}'
+    r = client.post("/dashboard/import", data={"source": "clean", "text": good}, headers=auth("admin")).json()
+    assert r["imported"] == 1 and r["warning"] is None

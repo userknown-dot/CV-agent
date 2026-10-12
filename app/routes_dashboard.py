@@ -16,8 +16,9 @@ dev_router = APIRouter(prefix="/dev", tags=["dev"])
 
 
 @dev_router.get("/config")
-def dev_config(db: Session = Depends(get_db)):
-    """Return non-sensitive config info (public, not auth-gated: just for UI status display)."""
+def dev_config(_: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Which provider is configured and which one answered last, for the status badge in the UI.
+    Logged-in users only: it queries the usage log and reveals the provider setup."""
     # Which provider answered the most recent successful call?
     last_success = db.scalar(
         select(UsageLog.model).where(UsageLog.status == "success").order_by(UsageLog.ts.desc()).limit(1)
@@ -173,7 +174,24 @@ async def import_log(
                                  f"Columns found in your log: {cols}. If one of them is the time of each call, say which one "
                                  "in the mapping box, for example {\"ts\": \"that_column_name\"}.")
 
+    # A log whose columns have unusual names still imports, but with empty values. Say so instead of
+    # reporting a silent success: without this, "imported 6 rows" can mean 6 rows of zeros.
+    missing = [
+        field for field, empty in (
+            ("input_tokens / output_tokens", all(r["input_tokens"] == 0 and r["output_tokens"] == 0 for r in rows)),
+            ("user", all(r["user"] == "unknown" for r in rows)),
+            ("agent", all(r["agent"] == "external" for r in rows)),
+            ("model", all(r["model"] == "unknown" for r in rows)),
+            ("latency_ms", all(r["latency_ms"] == 0 for r in rows)),
+        ) if empty and field not in mp
+    ]
+    warning = None
+    if missing:
+        warning = (f"Imported, but no column was recognised for: {', '.join(missing)}, so those are empty. "
+                   f"Columns found in your log: {', '.join(found_columns(content, kind)) or 'none'}. "
+                   "Map them if you need them, for example {\"input_tokens\": \"tokens.in\"}.")
+
     db.execute(delete(ExternalUsage).where(ExternalUsage.source == source))  # re-import replaces
     db.add_all(ExternalUsage(source=source, **r) for r in rows)
     db.commit()
-    return {"source": source, "imported": len(rows), "skipped": skipped}
+    return {"source": source, "imported": len(rows), "skipped": skipped, "warning": warning}

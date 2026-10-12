@@ -30,8 +30,6 @@
   header .row { gap:10px; }
   .pill { display:inline-block; padding:2px 10px; border-radius:999px; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
           background:var(--accent-bg); color:var(--accent); }
-  .provider-badge { display:inline-block; padding:3px 8px; border-radius:6px; font-size:10px; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
-                    background:#f0f9ff; color:#0369a1; border:1px solid #bae6fd; }
 
   /* ---- layout: sidebar + content ---- */
   .shell { display:grid; grid-template-columns:240px 1fr; min-height:calc(100vh - 56px); }
@@ -188,7 +186,7 @@
 <div id="app" class="hidden">
   <header>
     <div class="brand"><span class="mark"></span><span>Agent platform</span><small id="space"></small></div>
-    <div class="row"><span id="providerBadge" class="provider-badge"></span><span id="rolePill" class="pill"></span><span id="who" class="muted"></span><button class="ghost" id="logout">Log out</button></div>
+    <div class="row"><span id="rolePill" class="pill"></span><span id="who" class="muted"></span><button class="ghost" id="logout">Log out</button></div>
   </header>
   <div class="shell">
     <aside class="side">
@@ -328,19 +326,6 @@ async function doLogin() {
   setLbl("tabAgents", admin ? "CV workspace" : "Workspace");
   setLbl("tabDash", admin ? "Overview" : "My usage");
 
-  // Show which LLM provider is currently answering calls (poll every 3 seconds for real-time update)
-  function updateProviderBadge() {
-    api("/dev/config").then(cfg => {
-      const providers = cfg.llm_provider.split(',').map(p => p.trim());
-      const labels = {"openai": "OpenAI", "anthropic": "Anthropic", "openrouter": "OpenRouter"};
-      const chain = providers.map(p => labels[p] || p).join(" → ");
-      const current = cfg.current_provider ? labels[cfg.current_provider] || cfg.current_provider : "waiting…";
-      $("providerBadge").textContent = current;
-      $("providerBadge").title = `Configured chain: ${chain}\nCurrently answering via: ${current}`;
-    }).catch(() => {});
-  }
-  updateProviderBadge();
-  setInterval(updateProviderBadge, 3000);
   renderQuick();
   setPage("agents");
   $("tabUsers").classList.toggle("hidden", !admin);
@@ -892,7 +877,9 @@ $("impBtn").onclick = async () => {
   $("impBtn").disabled = true;
   try {
     const r = await api("/dashboard/import", { method: "POST", body: fd });
-    $("impMsg").textContent = `Imported ${r.imported} rows (${r.skipped} skipped). It now appears as its own tab above.`;
+    $("impMsg").innerHTML = `Imported ${r.imported} rows (${r.skipped} skipped). It now appears as its own tab above.` +
+      (r.warning ? `<div class="err" style="margin-top:4px">${esc(r.warning)}</div>` : "");
+    if (r.warning) { $("impMapHelp").textContent = "Map the missing columns here, then press Import again."; $("impMapBox").classList.remove("hidden"); }
     currentSource = src; loadSources();
   } catch (e) {
     $("impMsg").innerHTML = `<span class="err">${esc(e.message)}</span>`;

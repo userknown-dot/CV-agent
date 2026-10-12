@@ -23,8 +23,8 @@ uvicorn app.main:app
 - Keys and settings are read once at startup: restart the server after editing `.env`.
 - `python -m scripts.set_key openai|anthropic|openrouter` stores a key in `.env` from a hidden prompt and tests it.
 
-Docker: `docker compose up --build` (reads `.env`). Note: there is no `.dockerignore` yet, so do not build an image you
-share while `.env` holds real keys.
+Docker: `docker compose up --build` (reads `.env` at run time; `.dockerignore` keeps keys and data out of the image).
+The image has not been built or run on this machine, so treat the Dockerfile as untested.
 
 ## Reproduce the results in REPORT.md
 ```
